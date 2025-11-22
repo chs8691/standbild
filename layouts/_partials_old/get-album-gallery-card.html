@@ -1,0 +1,38 @@
+<!-- Get latest images and count images. There may not be sub albums. -->
+ <!-- Returns no gallery if nothing found -->
+
+{{ $gallery := "" }}
+{{ $cover := "" }}
+{{ $thumbnail := "" }}
+{{ $color := "" }}
+{{ $imageCount := 0 }}
+{{ $albumCount := 1 }}
+{{ $first := true}}
+
+{{ range .Pages }}
+  {{ range .Resources.ByType "image" }}
+    {{ $imageCount = add $imageCount 1 }}
+  {{ end }}
+{{ end }}
+
+{{ range $p:= (.Pages.ByParam "Date") }}
+  {{ range ($p.Resources.ByType "image") }}
+    {{ if $first }}
+      {{ $first = false }}
+      {{ $cover = . }}
+      {{ $thumbnail = $cover.Filter (slice images.AutoOrient (images.Process "fit 600x600")) }}
+      {{ $color = index $thumbnail.Colors 0 | default "transparent" }}
+      {{ $date := $p.Params.Date }}
+      {{ $gallery = dict
+        "page" $p
+        "thumbnail" $thumbnail
+        "color" $color
+        "imageCount" $imageCount
+        "date" $date
+      }}      
+      {{ return $gallery }}
+
+    {{ end }}
+  {{ end }}
+{{ end }}
+

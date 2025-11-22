@@ -1,0 +1,1 @@
+Exiftool must be installed on the system.

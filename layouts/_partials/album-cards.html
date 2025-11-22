@@ -1,0 +1,59 @@
+ALBUM-  CARDS
+<!-- Create album gallery of cards, sorted by date of the cards image (newest image). -->
+ <!-- Album with newest image is shown as 'featured'.  -->
+ <!-- The $dates slice is a helper to get the correct order.  -->
+{{ $cards := slice }}
+{{ $dates := slice }}
+
+{{ range  .Pages  }}
+  {{ $card := partial "get-card-data.html" . }}
+  {{ with $card }}
+    {{ $dates = $dates | append .date }}
+  {{ end }}
+  {{ $cards = $cards | append $card }}
+{{ end }}
+
+<section class="featured">
+{{ range $date := sort $dates  "value" "desc" | first 1 }}
+  {{ range $cards }}
+    {{ with . }}
+      {{ if eq $date .date }}
+      <a class="featured-card" href="{{ .root.RelPermalink }}" style="background-color: {{ .color }}; background-image: url({{ .thumbnail.RelPermalink }})">
+        <div>
+          <h2>{{ .root.Title }}</h2>
+          <p>
+            {{ T "photoCount" (.imageCount | lang.FormatNumber 0) }} / {{ time.Format "2 Jan 2006" .page.Date }}
+          </p>
+        </div>
+      </a>
+      {{ end }}
+    {{ end }}
+  {{ end }}
+{{ end }} 
+</section>
+
+<section class="galleries">
+{{ $count := sub ( $dates | len ) 1  }}
+{{ range $date := sort $dates  "value" "desc" | last $count }}
+  {{ range $cards }}
+    {{ with . }}
+      {{ if eq $date .date }}
+        <a class="card" href="{{ .root.RelPermalink }}" title="{{ .root.Title }}">
+          <figure style="background-color: {{ .color }}">
+            <img class="lazyload" width="{{ .thumbnail.Width }}" height="{{ .thumbnail.Height }}" data-src="{{ .thumbnail.RelPermalink }}" alt="{{ .root.Title }}" />
+          </figure>
+          <div>
+            <h2>{{ .root.Title }}</h2>
+            <p>
+              {{ T "photoCount" (.imageCount | lang.FormatNumber 0) }} / {{ time.Format "2 Jan 2006" .page.Date }}
+            </p>
+          </div>
+        </a>
+      {{ end }}
+    {{ end }}
+  {{ end }} 
+{{ end }}
+</section>
+
+
+

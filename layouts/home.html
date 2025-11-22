@@ -1,0 +1,9 @@
+{{ define "main" }}
+HOME
+  {{ partial "title.html" . }}
+  {{ partial "taxonomies.html" }}
+  {{ partial "categories.html" }}
+  <!-- { { partial "featured.html" . }} -->
+  {{ partial "album-cards.html" . }}
+
+{{ end }}

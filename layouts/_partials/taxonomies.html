@@ -1,0 +1,12 @@
+TAXONOMIES
+{{ with site.Taxonomies }}
+  <nav class="categories">
+    <ul>
+      {{ warnf "TAXONOMIES: %s" . }}
+      {{ range . }}
+      {{ warnf "TAXONOMIES: %s" . }}
+         <li><a href="{{ .Page.Permalink }}">{{ .Page.Title }}</a></li>
+      {{ end }}
+    </ul>
+  </nav>
+{{ end }}

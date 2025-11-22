@@ -1,0 +1,65 @@
+{{ define "main" }}
+PHOTO.SINGLE
+
+  {{ partial "single-photo.html" . }}
+
+  {{ partial "title.html" . }}
+
+  {{ partial "related.html" . }}
+
+  {{ with .Content }}
+    <section class="prose">
+      {{ . }}
+    </section>
+  {{ end }}
+
+  <ul>
+    <li>
+      Date: {{ .Params.date }} 
+    </li>
+
+    {{ if .Params.recipe }}
+    <li>
+      Recipe: {{ .Params.recipe_source }}/{{ .Params.recipe }} 
+    </li>
+    {{ end }}
+
+    {{ if .Params.filmsimulation }}
+    <li>
+      Filmsimulation: {{ .Params.filmsimulation }}
+    </li>
+    {{ end }}
+
+    {{ if .Params.bw }}
+    <li>
+      B/W: {{ .Params.bw }}
+    </li>
+    {{ end }}
+
+    {{ if .Params.model }}
+    <li>
+      Model: {{ .Params.model }}
+    </li>
+    {{ end }}
+
+    {{ if .Params.sooc }}
+    <li>
+      SOOC: {{ .Params.sooc }}
+    </li>
+    {{ end }}
+
+    {{ if .Params.lat }}
+    <li>
+      Lat/Lon: {{ .Params.lat }}/{{ .Params.lon }}
+    </li>
+    
+    <li>
+      Address: 
+      {{ .Params.plz }} {{ .Params.city }} {{ .Params.region }} {{ .Params.state }} {{ .Params.country }}
+    </li>
+    {{ end }}
+
+
+  </ul>
+
+{{ end }}

@@ -1,0 +1,67 @@
+
+POST-GALLERY
+<div>
+
+  {{ $imgs := slice }}
+  {{ range $p:=  (.Pages.ByParam "Date").Reverse   }} 
+    <!-- {{ $p.Date }} -->
+    {{ range .Resources.ByType "image"  | first 1 }}
+      {{ $title := "" }}
+      {{ $date := "" }}
+      {{ with .Exif }}
+        {{ $date = .Date }}
+        {{ with .Tags.ImageDescription }}
+          {{/* Title from EXIF ImageDescription */}}
+          {{ $title = . }}
+        {{ end }}
+      {{ end }}
+      {{ if ne .Title .Name }}
+        {{/* Title from front matter */}}
+        {{ $title = .Title }}
+      {{ end }}
+      {{ if .Params.Date }}
+        {{/* Date from front matter */}}
+        {{ $date = time .Params.Date }}
+      {{ end }}
+      {{ $imgs = $imgs | append (dict 
+        "Name" .Name
+        "Title" $p.Params.title
+        "image" . 
+        "postUrl" $p.Permalink
+        "Date" $date
+        )
+      }}
+    {{ end }}      
+  {{ end }}
+  <!-- {{ $imgs }} -->
+
+  {{ $publishResources := default true .Params.build.publishResources }}
+</div>
+<section class="gallery">
+  <div id="gallery" style="visibility: hidden; height: 1px; overflow: hidden">
+      {{ range $imgs }}
+        {{ $img := .image }}
+        {{ $thumbnail := $img.Filter (slice images.AutoOrient (images.Process "fit 600x600")) }}
+        <!-- Date ist stored just for testing the sort order {{ .Date }} -->
+        {{ $full := $img.Filter (slice images.AutoOrient (images.Process "fit 1600x1600")) }}
+        {{ $color := index $thumbnail.Colors 0 | default "transparent" }}
+        {{ warnf "post-gallery: $publishResources %s" $publishResources }}
+        {{ warnf "post-gallery: $img.RelPermalink %s" $img.RelPermalink  }}
+        {{ warnf "post-gallery: $full.RelPermalink %s"  $full.RelPermalink }}
+        {{ warnf "post-gallery: .postUrl %s" .postUrl}}
+        <a class="gallery-item" href="{{ if $publishResources }}{{ $img.RelPermalink }}{{ else }}{{ $full.RelPermalink }}{{ end }}" data-pswp-src="{{ $full.RelPermalink }}" data-pswp-width="{{ $full.Width }}" data-pswp-height="{{ $full.Height }}" data-pswp-target="{{ $img.Name | urlize }}" title="{{ .Title }}" itemscope itemtype="https://schema.org/ImageObject" style="aspect-ratio: {{ $thumbnail.Width }} / {{ $thumbnail.Height }}">
+          <figure style="background-color: {{ $color }}; aspect-ratio: {{ $thumbnail.Width }} / {{ $thumbnail.Height }}">
+            <img class="lazyload" width="{{ $thumbnail.Width }}" height="{{ $thumbnail.Height }}" data-src="{{ $thumbnail.RelPermalink }}" alt="{{ .Title }}" />
+          </figure>
+          <meta itemprop="contentUrl" content="{{ if $publishResources }}{{ $img.RelPermalink }}{{ else }}{{ $full.RelPermalink }}{{ end }}" />
+          <meta itemprop="postUrl" content="{{ .postUrl }}" />
+          {{ with site.Params.Author }}
+            <span itemprop="creator" itemtype="https://schema.org/Person" itemscope>
+              <meta itemprop="name" content="{{ site.Params.Author.name }}" />
+            </span>
+          {{ end }}
+        </a>
+      {{ end }}
+ 
+  </div>
+</section>
