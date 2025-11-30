@@ -79,34 +79,43 @@ def get_address(latitude, longitude, language="de"):
 
     return ret
 
-def read_image(item):
+def read_image(item, address):
     """
     Adds image attributes to item. Return item added with keys from tags.py.
         DATE: As datetime object 
+    address: Boolean if address data should be read from geopy/Nominatim
     """
 
     ret = item
 
     filename = os.path.join(item[T.DIR], item[T.NAME])
 
+    log(f'read_image() {filename}')
+
     ret[T.TITLE      ] = 'ohne Titel' 
     ret[T.DESCRIPTION] = '' 
+    ret[T.MAKE       ] = 'unbekannt' 
     ret[T.MODEL      ] = 'unbekannt' 
-    ret[T.ALBUM      ] = 'Single' 
-    ret[T.ALBUM_DIR  ] = 'single' 
+    ret[T.LENS       ] = 'unbekannt' 
+    ret[T.ALBUM      ] = None
+    ret[T.ALBUM_DIR  ] = None
     ret[T.POST       ] = None 
-    ret[T.FILM       ] = 'unbekannt' 
-    ret[T.RECIPE     ] = '' 
-    ret[T.RECIPE_SOURCE] = '' 
     ret[T.SOOC       ] = 'False' 
     ret[T.BW         ] = 'False' 
     ret[T.LAT        ] = '' 
     ret[T.LON        ] = '' 
+    ret[T.CITY       ] = '' 
+    ret[T.PLZ        ] = '' 
+
+    # 
     ret[T.COUNTRY    ] = '' 
     ret[T.STATE      ] = '' 
     ret[T.REGION     ] = '' 
-    ret[T.CITY       ] = '' 
-    ret[T.PLZ        ] = '' 
+
+    # Fuji X specific tags: Will only be set for X-Cameras
+    ret[T.FILM       ] = '' 
+    ret[T.RECIPE     ] = '' 
+    ret[T.RECIPE_SOURCE] = '' 
 
     dt = None
 
@@ -118,13 +127,16 @@ def read_image(item):
         field = 'EXIF:DateTimeOriginal'
         if field in values:
             dt = datetime.strptime(values[field], '%Y:%m:%d %H:%M:%S')
+
+        # Workaraound for missing datetime: Parse filename. This should always start with date and time 
         else:
-            err('Missing EXIF:DateTimeOriginal')
+            print('WARN Missing EXIF:DateTimeOriginal, parsing filename')
+            dt = datetime.strptime(re.sub('[^0-9]', '', filename)[:14], '%Y%m%d%H%M%S')
         
         ret[T.DATE] = dt.strftime("%Y-%m-%dT%H:%M:%S")
         ret[T.YEAR] = dt.year
         ret[T.POST] = dt.strftime("%Y%m%d-%H%M%S")
-            
+
         field = 'EXIF:ImageDescription'
         if field in values:
             ret[T.DESCRIPTION] = values[field]
@@ -133,9 +145,17 @@ def read_image(item):
         if field in values:
             ret[T.TITLE] = values[field]
             
+        field = 'EXIF:Make'
+        if field in values:
+            ret[T.MAKE] = values[field]
+            
         field = 'EXIF:Model'
         if field in values:
             ret[T.MODEL] = values[field]
+            
+        field = 'EXIF:LensModel'
+        if field in values:
+            ret[T.LENS] = values[field]
 
         field = 'EXIF:GPSLongitude'
         if field in values:
@@ -145,12 +165,13 @@ def read_image(item):
         if field in values:
             ret[T.LAT] = values[field]
 
-        addr = get_address(ret[T.LAT], ret[T.LON])
+        if address:
+            addr = get_address(ret[T.LAT], ret[T.LON])
 
-        key = T.STATE
-        for key in [T.STATE, T.COUNTRY, T.REGION, T.CITY, T.PLZ]:
-            if key in addr:
-                ret[key] = addr[key]
+            key = T.STATE
+            for key in [T.STATE, T.COUNTRY, T.REGION, T.CITY, T.PLZ]:
+                if key in addr:
+                    ret[key] = addr[key]
 
         tagname = 'XMP:TagsList'
         data = et.get_tags(filename, tags=[tagname])
@@ -158,10 +179,16 @@ def read_image(item):
 
         if len(data) > 0 and tagname in data[0]:
 
+            # For single item, a String will be returned, otherwise it is a list!
             tags = data[0][tagname]
 
-            for tag in tags:
+            # Wrap single entry as list    
+            if isinstance(tags, str):
+                tags = [tags]
 
+            # log(f'TAGS: {tags}')
+
+            for tag in tags:
                 if tag == 'SOOC':
                     ret[T.SOOC] = True
 
@@ -171,6 +198,15 @@ def read_image(item):
                 if m is not None:
                     ret[T.ALBUM] = m.group(1)
                 continue
+
+            # Older images don't use 'Serie/'
+            if ret[T.ALBUM] is None: 
+                for key in ['Orte', 'die-runde-stunde', 'pendel', 
+                            'kollegenrunde', 'GN', 'Home Spot', 
+                            'Wettkampftag', 'Brompt_on the way']:
+                    if key in tags:
+                        ret[T.ALBUM] = key
+
 
             p = re.compile('Recipe/(.*)')
             for tag in tags:
@@ -200,12 +236,6 @@ def read_image(item):
 
                 continue
 
-            if not T.ALBUM in ret:
-                ret[T.ALBUM] = 'Single'
-                warn('Missing Tag for Serie. Set ALBUM="SINGLE"')
-
-            ret[T.ALBUM_DIR] = re.sub('[^0-9a-zA-Z]+', '-', ret[T.ALBUM].lower())
-
             if T.SOOC in ret and not T.RECIPE in ret:
                 warn('SOOC but no Recipe')
     
@@ -215,7 +245,26 @@ def read_image(item):
             if not hasfilm:
                 warn('Missing film simulation')
 
+        # FUJIFILM specific tags 
+        if ret[T.MAKE].lower() == 'fujifilm':
+
+            if len(ret[T.FILM]) == 0:
+                ret[T.FILM] = 'unbekannt'
+
+            if len(ret[T.RECIPE]) == 0:
+                ret[T.RECIPE] = 'ohne'
+                ret[T.RECIPE_SOURCE] = ''
+
+            elif len(ret[T.RECIPE_SOURCE]) == 0:
+                ret[T.RECIPE_SOURCE] = 'unbekannt'
             
+            
+    if ret[T.ALBUM] is None:
+        ret[T.ALBUM] = 'Single'
+        warn('Missing Tag for Serie. Set ALBUM="Single"')
+
+    ret[T.ALBUM_DIR] = re.sub('[^0-9a-zA-Z]+', '-', ret[T.ALBUM].lower())
+    log(f'Serie (Album): {ret[T.ALBUM]}')
 
     log(f'item={ret}' )
 
@@ -237,7 +286,7 @@ def copy_image(content_dir, path):
     if(len(p.parts)< 2):
         err(f"Path doesn't contain album and image: {path}")
 
-    if(not p.suffix.lower() == '.jpg'):
+    if(p.suffix.lower() != '.jpg' and p.suffix.lower() == '.jpeg'):
         err(f"Invalid image format: {str(p.suffix)}. Must be an jpg file")
    
     tags = dict()
@@ -284,6 +333,8 @@ def create_index_file(source, tmp, image, index):
         f.write(f'year: {image[T.YEAR]}\n')
         f.write(f'recipe: {image[T.RECIPE]}\n')
         f.write(f'recipe_source: {image[T.RECIPE_SOURCE]}\n')
+        f.write(f'make: {image[T.MAKE]}\n')
+        f.write(f'lens: {image[T.LENS]}\n')
         f.write(f'model: {image[T.MODEL]}\n')
         f.write(f'sooc: {image[T.SOOC]}\n')
         f.write(f'filmsimulation: {image[T.FILM]}\n')
@@ -384,13 +435,14 @@ def rm_import_image(source, filename):
     os.remove(path)
 
 
-def process(images):
+def process(images, address):
     log('process()')
 
     for image in images:
-        image = read_image(image)
+        image = read_image(image, address)
         prepare_tmp(args.source, tmp)
         create_index_file(args.source, tmp, image, indexfile)
+        # continue
         create_image(args.source, tmp, image[T.NAME])
         create_post(args.destination, image[T.ALBUM_DIR], image[T.POST], args.source, tmp, image[T.NAME], indexfile)
         rm_import_image(args.source, image[T.NAME])
@@ -406,7 +458,7 @@ def read_source_images(source):
 
     for folder, subfolders, files in os.walk(source):
         # log(f'{folder}')
-        for f in [f for f in files if f.lower().endswith('jpg')]:
+        for f in [f for f in files if f.lower().endswith('jpg') or f.lower().endswith('jpeg')]:
             item = {T.NAME: f, T.DIR: folder}
             images.append(item)
             log(f'  {item}')
@@ -428,7 +480,7 @@ def main():
     if len(images) == 0:
         exit(f'No image found in: {args.source}')
 
-    process(images)
+    process(images, args.address)
 
     log('Done.')
     
@@ -439,6 +491,7 @@ def parseargs():
                                      " Existing files and directories of 'destination' will be overwritten!" \
                                      " The index file of the touched album will be refreshed." \
                                      " The featured tag will be recalculated to album with the newest file.")
+    parser.add_argument('-a', '--address', action='store_true', help=f'Retrieve address by gps coordinates from Nominatim.' )
     parser.add_argument('-v', '--verbose', action='store_true', help=f'Print more information' )
     parser.add_argument('-d', '--destination', type=str, 
                         help=f"Content directory as root where to merge to. Default is {destination}." \

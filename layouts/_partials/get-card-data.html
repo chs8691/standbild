@@ -10,32 +10,33 @@
 {{ $first := true}}
 {{ $root := .}}
 
+<!-- Count the number of posts to show it on the card. -->
 {{ range .Pages }}
-<!-- { { warnf "HALLO %s"  . }} -->
-  {{ range .Resources.ByType "image" }}
-    {{ $imageCount = add $imageCount 1 }}
-  {{ end }}
+  {{ $imageCount = add $imageCount 1 }}
 {{ end }}
 
-{{ range $p:= (.Pages.ByParam "Date") }}
-  {{ range ($p.Resources.ByType "image") }}
-    {{ if $first }}
-      {{ $first = false }}
-      {{ $cover = . }}
-      {{ $thumbnail = $cover.Filter (slice images.AutoOrient (images.Process "fit 600x600")) }}
-      {{ $color = index $thumbnail.Colors 0 | default "transparent" }}
-      {{ $date := $p.Params.Date }}
-      {{ $gallery = dict
-        "page" $p
-        "thumbnail" $thumbnail
-        "color" $color
-        "imageCount" $imageCount
-        "date" $date
-        "root" $root
-      }}      
-      {{ return $gallery }}
+<!-- Pick up the newest post -->
+{{ range $p:= first 1 (sort .Pages ".Params.Date" "desc") }}
+<!-- { { warnf "get-card-data, find the newest post: %s"  . }} -->
 
-    {{ end }}
+  <!-- There is always excactly one image per post -->
+  {{ range ($p.Resources.ByType "image") | first 1 }}
+
+    {{ $cover = . }}
+    {{ $thumbnail = $cover.Filter (slice images.AutoOrient (images.Process "fit 600x600")) }}
+    {{ $color = index $thumbnail.Colors 0 | default "transparent" }}
+    {{ $date := $p.Params.Date }}
+    {{ $gallery = dict
+      "page" $p
+      "thumbnail" $thumbnail
+      "color" $color
+      "imageCount" $imageCount
+      "date" $date
+      "root" $root
+    }}      
+    {{ return $gallery }}
+    
   {{ end }}
+
 {{ end }}
 

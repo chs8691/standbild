@@ -21,6 +21,15 @@ cd standbild
 git submodule add --depth=1 https://github.com/nicokaiser/hugo-theme-gallery.git themes/gallery
 ```
 
+Als Vorlage das Verzeichnis `/content` und das Import-Verzeichnis für das Skript erstellen:
+
+```zsh
+mkdir content
+cp -r content-template/* content/
+mkdir import
+```
+
+
 ## Template and data organization
 
 Das urspüngliche Gallary-Theme wurde um `Section` erweitert - so können die Bilder als Posts abgelegt werden können.
@@ -68,10 +77,10 @@ Die Aufgaben des Skriptings sind:
     - Update des neuen Albums
 
 
-
 Das `import`-Verzeichnis:
-- Flache Struktur, Unterverzeichnisse werden nicht berücksichtigt
-- Verarbeitete Bilder und erzeugt MDs werden aus dem Verzeichnis gelöscht
+- Zu verarbeitende **Kopien** der Originalen Foto-Dateien.
+- ACHTUNG: Alle Dateien im `Import`-Verzeichnis werden nach erfolgreicher Verarbeitung gelöscht.
+- Verkleinerte Bilder und erzeugte index.md werden aus dem content-Verzeichnis gelöscht (Unterverzeichnis `tmp`).
 
 
 

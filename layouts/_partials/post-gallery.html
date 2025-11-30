@@ -45,10 +45,10 @@ POST-GALLERY
         <!-- Date ist stored just for testing the sort order {{ .Date }} -->
         {{ $full := $img.Filter (slice images.AutoOrient (images.Process "fit 1600x1600")) }}
         {{ $color := index $thumbnail.Colors 0 | default "transparent" }}
-        {{ warnf "post-gallery: $publishResources %s" $publishResources }}
-        {{ warnf "post-gallery: $img.RelPermalink %s" $img.RelPermalink  }}
-        {{ warnf "post-gallery: $full.RelPermalink %s"  $full.RelPermalink }}
-        {{ warnf "post-gallery: .postUrl %s" .postUrl}}
+        <!-- { { warnf "post-gallery: $publishResources %s" $publishResources }}
+        { { warnf "post-gallery: $img.RelPermalink %s" $img.RelPermalink  }}
+        { { warnf "post-gallery: $full.RelPermalink %s"  $full.RelPermalink }}
+        { { warnf "post-gallery: .postUrl %s" .postUrl}} -->
         <a class="gallery-item" href="{{ if $publishResources }}{{ $img.RelPermalink }}{{ else }}{{ $full.RelPermalink }}{{ end }}" data-pswp-src="{{ $full.RelPermalink }}" data-pswp-width="{{ $full.Width }}" data-pswp-height="{{ $full.Height }}" data-pswp-target="{{ $img.Name | urlize }}" title="{{ .Title }}" itemscope itemtype="https://schema.org/ImageObject" style="aspect-ratio: {{ $thumbnail.Width }} / {{ $thumbnail.Height }}">
           <figure style="background-color: {{ $color }}; aspect-ratio: {{ $thumbnail.Width }} / {{ $thumbnail.Height }}">
             <img class="lazyload" width="{{ $thumbnail.Width }}" height="{{ $thumbnail.Height }}" data-src="{{ $thumbnail.RelPermalink }}" alt="{{ .Title }}" />

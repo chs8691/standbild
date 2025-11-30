@@ -2,8 +2,9 @@
 _gen/
 __pycache__
 public
-/import/
+/import*/
 /import-full/
 .DS_Store
 content-orig
 .hugo_build.lock
+/content/

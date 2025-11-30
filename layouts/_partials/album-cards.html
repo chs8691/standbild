@@ -13,6 +13,8 @@ ALBUM-  CARDS
   {{ $cards = $cards | append $card }}
 {{ end }}
 
+<!-- { { warnf "Dates:%s" $dates}} -->
+
 <section class="featured">
 {{ range $date := sort $dates  "value" "desc" | first 1 }}
   {{ range $cards }}

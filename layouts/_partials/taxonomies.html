@@ -2,9 +2,9 @@ TAXONOMIES
 {{ with site.Taxonomies }}
   <nav class="categories">
     <ul>
-      {{ warnf "TAXONOMIES: %s" . }}
+      <!-- { { warnf "site.Taxonomies: %s" . }} -->
       {{ range . }}
-      {{ warnf "TAXONOMIES: %s" . }}
+      <!-- { { warnf "TAXONOMIES: %s" . }} -->
          <li><a href="{{ .Page.Permalink }}">{{ .Page.Title }}</a></li>
       {{ end }}
     </ul>

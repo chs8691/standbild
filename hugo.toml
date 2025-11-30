@@ -78,7 +78,10 @@ timeout = "120s"
     type = 'basic'
     weight = 50
 
+
 [taxonomies]
   year = 'year'
   filmsimulation = 'filmsimulation'
-
+  model = 'model'
+  lens = 'lens'
+  recipe = 'recipe'
