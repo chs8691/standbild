@@ -1,26 +1,29 @@
-
 <style>
 img {
-
   height: auto;
 }
 </style>
+  <!-- SINGLE-PHOTO -->
+  
+  
+  <div style="font-weight:500" >
+    {{ $pages := (.CurrentSection.Pages.ByParam "Date") }}
+    {{ with $pages.Prev . }}
+      <a href="{{ .RelPermalink }}">‹Previous</a>
+    {{ end }}
 
-  SINGLE-PHOTO
-{{ $pages := (.CurrentSection.Pages.ByParam "Date") }}
-{{ with $pages.Prev . }}
-  <a href="{{ .RelPermalink }}">Previous</a>
+    {{ if and ($pages.Prev .) ($pages.Next .) }}
+    <span style="padding-inline:1em;">|</span>
 {{ end }}
 
-{{ with $pages.Next . }}
-  <a href="{{ .RelPermalink }}">Next</a>
-{{ end }}
-
+    
+    {{ with $pages.Next . }}
+      <a  href="{{ .RelPermalink }}">Next›</a>
+    {{ end }}
+  </div>
   {{ range .Resources.ByType "image"  | first 1 }}
-   {{ $full := .Filter (slice images.AutoOrient (images.Process "fit 1200x1200")) }} 
-
-
-    <figure>
-      <img class="lazyload" width="{{ $full.Width }}" height="{{ $full.Height }}" data-src="{{ . }}" alt="{{ .Title }}" />
-    </figure>
+  {{ $full := .Filter (slice images.AutoOrient (images.Process "fit 1200x1200")) }} 
+  <figure>
+    <img class="lazyload" width="{{ $full.Width }}" height="{{ $full.Height }}" data-src="{{ . }}" alt="{{ .Title }}" />
+  </figure>
   {{ end }}

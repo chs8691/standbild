@@ -1,10 +1,10 @@
 ---
 layout: prose
 rss_ignore: true
-title: About
+title: Über
 menu:
   main:
     weight: 90
 ---
 
-This is a demonstration site for the Hugo Gallery theme.
+Auf unterschiedlichen Wegen (Alben) entstanden Foto. Es ist eine Gesamtsicht drauf, deshhalb befinden sich auch die Bilder aus _Pendel_ und _Die Runde Stunde_ hier wieder.

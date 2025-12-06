@@ -1,10 +1,9 @@
-ALBUM-  CARDS
+<!-- ALBUM-  CARDS -->
 <!-- Create album gallery of cards, sorted by date of the cards image (newest image). -->
  <!-- Album with newest image is shown as 'featured'.  -->
  <!-- The $dates slice is a helper to get the correct order.  -->
 {{ $cards := slice }}
 {{ $dates := slice }}
-
 {{ range  .Pages  }}
   {{ $card := partial "get-card-data.html" . }}
   {{ with $card }}

@@ -1,9 +1,9 @@
-baseURL = 'https://example.org/'
+baseURL = "https://standbild.kollegen.uber.space"
 languageCode = 'de-de'
-title = 'Home'
+title = 'Standbild'
 theme = 'gallery'
 
-copyright = "© Your Name"
+copyright = "© Christian Schulzendorff"
 defaultContentLanguage = "de"
 disableKinds = []
 enableRobotsTXT = true
@@ -12,23 +12,18 @@ timeout = "120s"
 
 [params]
   defaultTheme = "dark"
-  description = "Example site for hugo-theme-gallery"
+  description = "Bilder in Alben"
   [params.author]
-    email = "user@example.com"
-    name = "Your Name"
+    email = "chs8691+standbild@mailbox.org"
+    name = "Christian Schulzendorff"
   [params.socialIcons]
-    facebook = "https://www.facebook.com/"
-    instagram = "https://www.instagram.com/"
-    github = "https://github.com/nicokaiser/hugo-theme-gallery/"
-    youtube = "https://www.youtube.com/"
-    email = "mailto:user@example.com"
-    #website = "https://example.com"
-    #mastodon = "https://example.com"
-    #pixelfed = "https://example.com"
-    #mixcloud = "https://example.com"
-    #flickr = "https://www.flickr.com"
-    #500px = "https://500px"
-    #whatsapp = "1234567890"
+    github = "https://github.com/chs8691/standbild/"
+    email = "mailto:chs8691+standbild@mailbox.org"
+    website = "https://kollegen.uber.space"
+    flickr = "https://www.flickr.com/photos/christian_schulzendorff/"
+  [params.meta]
+    favicon = true
+
   [params.gallery]
     #boxSpacing = 10
     #targetRowHeight = 288
@@ -40,7 +35,7 @@ timeout = "120s"
   section = ["HTML"]
 
 [imaging]
-  quality = 75
+  quality = 77
   resampleFilter = "CatmullRom"
   [imaging.exif]
     disableDate = false
@@ -49,9 +44,13 @@ timeout = "120s"
 
 [menu]
   [[menu.footer]]
-    name = "GitHub"
-    url = "https://github.com/nicokaiser/hugo-theme-gallery/"
+    name = "Impressum"
+    url = "https://kollegen.uber.space/impressum/"
     weight = 3
+  [[menu.footer]]
+    name = "kollegen.uber.space"
+    url = "https://kollegen.uber.space"
+    weight = 4
 
 [services]
   [services.rss]

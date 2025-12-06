@@ -7,7 +7,7 @@ Mit der Taxonomie von Hugo können die Bilder darüberhinaus nach Attributen (Te
 Die Posts liegen als Bundle-Verzeichnis direkt in den Album-Verzeichnissen, alles liegt in `/content`. Für jedes Bild ist ein Post in einem Verzeichnis mit der Bilddatei und der `index.md`-Datei anzulegen.
 
 
-## Installation
+## Installation und Setup gitHub
 Beschreibt, wie das hugo-Projekt mit dem Theme als git submodel incl. den Demo-Bildern erstellt wird.
 
 Hugo muss installiert sein.
@@ -82,8 +82,52 @@ Das `import`-Verzeichnis:
 - ACHTUNG: Alle Dateien im `Import`-Verzeichnis werden nach erfolgreicher Verarbeitung gelöscht.
 - Verkleinerte Bilder und erzeugte index.md werden aus dem content-Verzeichnis gelöscht (Unterverzeichnis `tmp`).
 
+## Lokaler Test
+
+Hugo wacht über Änderungen in dem Verzeichnis und stellt einen lokalen Webserver zur Verfügung. Starten:
+
+```zsh
+hugo server -D
+```
+bzw.
+```zsh
+rm -r public && hugo server -D
+```
+
+Wird die Seite erfolgreich generiert, kann diese dann im Browser gestartet werden.
+
+```zsh
+Web Server is available at http://localhost:1313/ (bind address 127.0.0.1) 
+Press Ctrl+C to stop
+```
+
+## Setup Uberspace
+
+Die generierte Website wird mit dem html-Verzeichnis auf Ueberspace synchronisiert. Es liegt dort also nur der fertige Content. 
+
+Das Publishing erfolgt in das Website-Vezeichnis /home/kollegen/html/standbild. Der zugreifende Gitea-User muss den ssh-Key konfigurierte haben, damit git und rsync per ssh genutzt werden kann. 
+Hugo wird nicht benötigt; stattdessen wird der fertige Content hochgeladen.
+
+### Subdomain
+
+Die Seite soll unter der Subdomain standbild.kollegen.uber.space erreichbar sein 
+(und nicht unter kollegen.uber.space/standbild). 
+
+Einrichten der Subdomain:
+
+```zsh
+[kollegen@despina ~]$ uberspace web domain add standbild.kollegen.uber.space
+```
+
+Der Webcontent für diese Subdomain muss in einem gleichnamigen Verzeichnis neben dem html-Verzeichnis liegen. 
+Dieser Content wird per lokalem Skript `deploy.sh` angelegt. Es wird einmalig das leere Verzeichnis 
+angelegt und ein symbolischer Link im Home-Verzeichnis erstellt:
 
 
+```zsh
+[kollegen@despina ~]$ mkdir /var/www/virtual/kollegen/standbild.kollegen.uber.space
+[kollegen@despina ~]$ ln -s /var/www/virtual/kollegen/standbild.kollegen.uber.space ~/standbild.kollegen.uber.space
+```
 
 ## Troubleshooting
 
