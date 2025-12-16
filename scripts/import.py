@@ -20,8 +20,14 @@ source = 'import'
 # Self-managed subdirectory for file creations 
 tmp = 'tmp'
 
+# stats key delimeter. This character may not be used in the location's values (coutntry, region, city, plz)!
+deli = '|'
+
+# Default treshold for number of posts for a location group
+treshold = 10
+
 # Name of the post markdown file
-indexfile = 'index.md'
+INDEXFILENAME = 'index.md'
 
 def create_image(source, tmp, name):
     """
@@ -56,12 +62,14 @@ def get_address(latitude, longitude, language="de"):
 
     coordinates = f"{latitude}, {longitude}"
 
+    log(f'get_address()')
+
     ret = dict()
 
     try:
         geolocator = Nominatim(user_agent="de.kollegen.standbild")
         location = geolocator.reverse(coordinates)
-        log(f"get_address() {location}")
+        log(f"Fetched location: {location}")
         parts = location.address.split(", ")
         if len(parts) >= 5:
             ret[T.COUNTRY] = parts[-1]
@@ -78,6 +86,7 @@ def get_address(latitude, longitude, language="de"):
         print("geolocator failed")
 
     return ret
+
 
 def read_image(item, address):
     """
@@ -112,8 +121,11 @@ def read_image(item, address):
     ret[T.STATE      ] = '' 
     ret[T.REGION     ] = '' 
 
+    # Will not be set here
+    ret[T.LOCATION   ] = ''
+
     # Fuji X specific tags: Will only be set for X-Cameras
-    ret[T.FILM       ] = '' 
+    ret[T.FILMSIMULATION] = '' 
     ret[T.RECIPE     ] = '' 
     ret[T.RECIPE_SOURCE] = '' 
 
@@ -157,13 +169,30 @@ def read_image(item, address):
         if field in values:
             ret[T.LENS] = values[field]
 
+        # W or E  
+        field = 'EXIF:GPSLongitudeRef'
+        if field in values:
+            ref = values[field]
+
         field = 'EXIF:GPSLongitude'
         if field in values:
-            ret[T.LON] = values[field]
+            if ref == 'W':
+             ret[T.LON] = - values[field]
+            else:
+             ret[T.LON] = values[field]
+
+        # N or S 
+        field = 'EXIF:GPSLongitudeRef'
+        if field in values:
+            ref = values[field]
 
         field = 'EXIF:GPSLatitude'
         if field in values:
             ret[T.LAT] = values[field]
+            if ref == 'S':
+             ret[T.LAT] = - values[field]
+            else:
+             ret[T.LAT] = values[field]
 
         if address:
             addr = get_address(ret[T.LAT], ret[T.LON])
@@ -226,7 +255,7 @@ def read_image(item, address):
                 m = p.match(tag)
 
                 if m is not None:
-                    ret[T.FILM] = m.group(2)
+                    ret[T.FILMSIMULATION] = m.group(2)
                     hasfilm = True
                     
                     if m.group(1) != 'Color':
@@ -248,8 +277,8 @@ def read_image(item, address):
         # FUJIFILM specific tags 
         if ret[T.MAKE].lower() == 'fujifilm':
 
-            if len(ret[T.FILM]) == 0:
-                ret[T.FILM] = 'unbekannt'
+            if len(ret[T.FILMSIMULATION]) == 0:
+                ret[T.FILMSIMULATION] = 'unbekannt'
 
             if len(ret[T.RECIPE]) == 0:
                 ret[T.RECIPE] = 'ohne'
@@ -304,56 +333,74 @@ def copy_image(content_dir, path):
 
 
 def log(message):
-    if args.verbose:
+    if args.verbose or args.veryverbose:
+        print(message)
+
+def vlog(message):
+    if args.veryverbose:
         print(message)
 
 
 def warn(message):
         print(f'WARN {message}')
 
+    
+def write_index_file(filename, image):
+    """Replace index.md to write index data into frontmatter. The parameters will be checked first. Return False in error case."""
 
-def make_dir(image):
-    """Creates local direcory, ready to move."""
+    vlog(f'write_index_file(): {filename}')
+    vlog(f'image={image}')
 
-    print(image[T.DATE])
+    # First preopare all data before b) changing the file. This gives the chance to detect issues like missng items.
+    lines = []
 
-def create_index_file(source, tmp, image, index):
+    # Like all other frontmatter values: may not end with a \n to prevnent for empty lines
+    if image[T.DESCRIPTION].endswith('\n'):
+        description = image[T.DESCRIPTION][0:-2]
+    else:
+        description = image[T.DESCRIPTION]
 
-    filename = os.path.join(source, tmp, index)
+    lines.append('---')
+    lines.append(f'{T.TITLE}: {image[T.TITLE]}')
+    lines.append(f'{T.DATE}: {image[T.DATE]}')
+    # lines.append(f'album: {image[T.ALBUM]}')
+    # lines.append(f'album-dir: {image[T.ALBUM_DIR]}')
+    lines.append(f'{T.YEAR}: {image[T.YEAR]}')
+    lines.append(f'{T.RECIPE}: {image[T.RECIPE]}')
+    lines.append(f'{T.RECIPE_SOURCE}: {image[T.RECIPE_SOURCE]}')
+    lines.append(f'{T.MAKE}: {image[T.MAKE]}')
+    lines.append(f'{T.LENS}: {image[T.LENS]}')
+    lines.append(f'{T.MODEL}: {image[T.MODEL]}')
+    lines.append(f'{T.SOOC}: {image[T.SOOC]}')
+    lines.append(f'{T.FILMSIMULATION}: {image[T.FILMSIMULATION]}')
+    lines.append(f'{T.BW}: {image[T.BW]}')
+    lines.append(f'{T.DESCRIPTION}: >')
+    lines.append(f'{description}')
+    # lines.append(f"type: 'photo'")
+    lines.append(f'{T.LAT}: {image[T.LAT]}')
+    lines.append(f'{T.LON}: {image[T.LON]}')
+    lines.append(f'{T.COUNTRY}: {image[T.COUNTRY]}')
+    lines.append(f'{T.STATE}: {image[T.STATE]}')
+    lines.append(f'{T.REGION}: {image[T.REGION]}')
+    lines.append(f'{T.CITY}: {image[T.CITY]}')
+    lines.append(f'{T.PLZ}: {image[T.PLZ]}')
+    lines.append(f'{T.LOCATION}: {image[T.LOCATION]}')
+    lines.append('---')
 
     if os.path.exists(filename):
         os.remove(filename)
 
     with open(filename, 'w') as f:
-        f.write('---\n')
-        f.write(f'title: {image[T.TITLE]}\n')
-        f.write(f'date: {image[T.DATE]}\n')
-        # f.write(f'album: {image[T.ALBUM]}\n')
-        # f.write(f'album-dir: {image[T.ALBUM_DIR]}\n')
-        f.write(f'year: {image[T.YEAR]}\n')
-        f.write(f'recipe: {image[T.RECIPE]}\n')
-        f.write(f'recipe_source: {image[T.RECIPE_SOURCE]}\n')
-        f.write(f'make: {image[T.MAKE]}\n')
-        f.write(f'lens: {image[T.LENS]}\n')
-        f.write(f'model: {image[T.MODEL]}\n')
-        f.write(f'sooc: {image[T.SOOC]}\n')
-        f.write(f'filmsimulation: {image[T.FILM]}\n')
-        f.write(f'bw: {image[T.BW]}\n')
-        f.write(f'description: >\n')
-        f.write(f'{formatting_description(image[T.DESCRIPTION])}\n')
-        f.write(f"type: 'photo'\n")
-        f.write(f'lat: {image[T.LAT]}\n')
-        f.write(f'lon: {image[T.LON]}\n')
-        f.write(f'country: {image[T.COUNTRY]}\n')
-        f.write(f'state: {image[T.STATE]}\n')
-        f.write(f'region: {image[T.REGION]}\n')
-        f.write(f'CITY: {image[T.CITY]}\n')
-        f.write(f'PLZ: {image[T.PLZ]}\n')
-        f.write('---\n')
+        for line in lines:
+            f.write(f'{line}\n')
 
-    log(f'{filename} created for {image[T.NAME]}')
+    log(f'{filename} created')
+
+    return True
+
 
 def formatting_description(description):
+    """Frontmatter valid and human readable text."""
 
     # log('prepare_description()')
     lines = description.split('\n')
@@ -369,7 +416,7 @@ def formatting_description(description):
 
     ok = True
 
-    # Remove title for settings if empty
+    # Patch for reciper.py: Remove title for settings if empty
     while(ok and len(lines) > 0):
         if(lines[-1] == 'Divergent settings:' or len(lines[-1]) == 0):
             lines.pop()
@@ -383,6 +430,7 @@ def formatting_description(description):
         eol = '\n'
 
     return ret
+
 
 def prepare_tmp(source, tmp):
 
@@ -435,17 +483,20 @@ def rm_import_image(source, filename):
     os.remove(path)
 
 
-def process(images, address):
-    log('process()')
+def process_import(images, address):
+    log('process_import()')
 
     for image in images:
         image = read_image(image, address)
         prepare_tmp(args.source, tmp)
-        create_index_file(args.source, tmp, image, indexfile)
-        # continue
-        create_image(args.source, tmp, image[T.NAME])
-        create_post(args.destination, image[T.ALBUM_DIR], image[T.POST], args.source, tmp, image[T.NAME], indexfile)
-        rm_import_image(args.source, image[T.NAME])
+        filename = os.path.join(args.source, tmp, INDEXFILENAME)
+
+        image[T.DESCRIPTION] = formatting_description(image[T.DESCRIPTION])
+        if write_index_file(filename, image):
+            # continue
+            create_image(args.source, tmp, image[T.NAME])
+            create_post(args.destination, image[T.ALBUM_DIR], image[T.POST], args.source, tmp, image[T.NAME], INDEXFILENAME)
+            rm_import_image(args.source, image[T.NAME])
 
 
 
@@ -465,6 +516,232 @@ def read_source_images(source):
     
     return images
 
+
+
+
+def loc_create_index_from_files(root):
+    """Parse posts for index.md files for location data. Returns a list with dictionary for every post. With None value for NEW_LOCATION."""
+
+    ret = []
+    count_non_gps = 0
+    count_non_location = 0
+    count_non_country = 0
+
+    log('create_index_from_files()')
+
+    for folder, subfolders, files in os.walk(root):
+        # log(f'{folder}')
+        for f in [f for f in files if f.lower() == INDEXFILENAME]:
+
+            filename = os.path.join(folder, f)
+            with open(filename) as file:
+                item = {T.NAME: filename, 
+                        T.LAT: None,
+                        T.LON: None,
+                        T.COUNTRY: None,
+                        T.STATE: None,
+                        T.REGION: None,
+                        T.PLZ: None,
+                        T.CITY: None,
+                        T.LOCATION: None,
+
+                        # Will not  be filled here
+                        T.NEW_LOCATION: None,
+                        }
+                
+                for line in file:
+                    for key in [T.LAT, T.LON, T.COUNTRY, T. STATE, T.REGION, T.PLZ, T.CITY, T.LOCATION]:
+                        if line.startswith(f'{key}:'):
+                            value = line.replace(f'{key}: ', '').replace('\n', '').strip()
+                            if len(value) > 0:
+                                item[key] = value
+
+            if item[T.LAT] is None or item[T.LON] is None:
+                count_non_gps += 1
+                vlog(f'Missing GPS: {filename}')
+            
+            if item[T.COUNTRY] is None:
+                count_non_country += 1
+                vlog(f'Missing Country: {filename}')
+            
+            if item[T.LOCATION] is None:
+                count_non_location += 1
+                # vlog(f'Missing Location: {filename}')
+
+            ret.append(item)
+            # log(f'  {item}')
+    
+    log(f'Found {len(ret)} files "{INDEXFILENAME}". Missing GPS={count_non_gps}, missing Country={count_non_country}, missing Location={count_non_location}')
+
+    return ret
+
+
+def loc_create_stats(index, fields):
+    """
+    Count occurance of places for the give field pair and its treshold (index 2). Return dict with occurances as key (keys) and value (counter). 
+    To have just one key value both values, for field[0] and field [1], will be used as a tuple.
+    """
+
+    log('loc_create_stats')
+
+    all = dict()
+    ret = dict()
+    cnt = 0
+
+    for i in [i for i in index if i[T.NEW_LOCATION] is None]:
+        # log(f'i={i}')
+
+        k = (i[fields[0]], i[fields[1]])
+        treshold = fields[2]
+
+        cnt += 1
+        if k in all:
+            all[k] += 1
+        else:
+            all[k] = 1
+
+#   Fetch the relevant items
+    for (key, value) in [(key, value) for (key, value) in all.items() if value >= treshold]:
+        ret[key] = value
+
+    log(f'Status for {fields}. Parsed {cnt} items. stats={ret}')
+
+    return ret
+
+
+def loc_set_new_location(index, stats, fields):
+    """ Set field new_location by matching stats for the give key fields. Returns the updated index."""
+
+    ret = index
+    cnt = 0
+
+    for s in stats:  
+        for i in [i for i in ret if i[T.NEW_LOCATION] is None]:
+            if i[fields[0]] == s[0] and i[fields[1]] == s[1]:
+                cnt += 1
+                i[T.NEW_LOCATION] = s[0]
+                # log(i[T.NEW_LOCATION])
+
+    log(f'loc_set_new_location: Set for {cnt} items')
+
+    return ret       
+
+
+def loc_read_frontmatter(filename):
+    """Returns frontmatter data from the give file as dict like in write_index_file(). Returns None in any problem case."""
+
+    vlog('loc_read_frontmatter()')
+
+    if not os.path.exists(filename):
+        print(f'WARN Skipping non existing file {filename}')
+
+    item = {}
+    with open(filename) as file:
+
+        fm = None
+        desc = None
+        description = ''
+
+        p = re.compile('^(\\w+): (.*)\n')
+        
+        for line in file:
+
+            vlog(f'line={line}')
+
+            # Entering frontmatter
+            if fm is None and line.startswith('---'):
+                vlog('Entering frontmatter')
+                fm = True
+                continue
+
+            # Exit frontmatter
+            if fm is True and line.startswith('---'):
+                vlog('Exit frontmatter')
+                fm = False
+                break
+
+            # Entering one time multiline description
+            if desc is None and line.startswith('description: >'):
+                vlog('Entering description')
+                desc = True
+                continue
+
+            # Read description line until next item  
+            if desc:
+                if line.startswith('  '):
+                    vlog('Read description line')
+                    description = description + line
+                    continue
+                else:
+                    desc = False
+
+
+
+            # Normal item mode
+            m = p.match(line)
+            if m is not None:
+                vlog('Normal item mode')
+                item[m.group(1)] = m.group(2)
+
+        item[T.DESCRIPTION] = description
+
+    vlog(f'item={item}')
+
+    return item
+
+
+def loc_update_index_files(index):
+    """ Update location in index.md if changed. """
+    missing = 0
+    changed = 0
+    total = 0
+
+    vlog('loc_update_index_files()')
+
+    for i in index:
+        total += 1
+        if T.NEW_LOCATION not in i:
+            missing += 1
+            continue
+
+        if i[T.NEW_LOCATION] != i[T.LOCATION]:
+            changed += 1
+
+            # Take existing values...
+            item = loc_read_frontmatter(i[T.NAME])
+            vlog(f'item from loc_read_frontmatter={item}')
+
+            # and just update location if changed
+            item[T.LOCATION] = i[T.NEW_LOCATION]
+            ret = write_index_file(i[T.NAME], item)
+    
+    #    # TEST TEST ETST STTE ETTS ETST TEST
+    #     if total >= 10:
+    #         break
+            
+
+    print(f'Location updated: total={total}, changed={changed}, missing={missing}')
+
+
+def loc_process(root, treshold):
+
+    vlog('loc_process()')
+
+    index = loc_create_index_from_files(root)
+    # log(f'index={index}')
+
+    # Get all nearest areas and count occurance of them
+    for fields in [(T.CITY, T.PLZ, treshold), (T.REGION, T.STATE, treshold), (T.STATE, T.COUNTRY, treshold), (T.COUNTRY, T.COUNTRY, 1)]:
+        stats = loc_create_stats(index, fields)
+
+        # Set location for matching items
+        index = loc_set_new_location(index, stats, fields)
+
+    loc_update_index_files(index)
+
+    # vlog(f'index={index}')
+
+
 def main():
 
     parseargs()
@@ -472,15 +749,17 @@ def main():
     if not os.path.isdir(args.destination):
         exit(f'Destination directory not found: {args.destination}')
     
-    # if not os.path.isdir(args.source):
-    #     exit(f'Source directory not found: {args.source}')
+    if not args.source is None:
     
-    images = read_source_images(args.source)
+        images = read_source_images(args.source)
 
-    if len(images) == 0:
-        exit(f'No image found in: {args.source}')
+        if len(images) == 0:
+            exit(f'No image found in: {args.source}')
 
-    process(images, args.address)
+        process_import(images, args.address)
+
+    if args.location:
+        loc_process(args.destination, args.treshold)   
 
     log('Done.')
     
@@ -492,7 +771,10 @@ def parseargs():
                                      " The index file of the touched album will be refreshed." \
                                      " The featured tag will be recalculated to album with the newest file.")
     parser.add_argument('-a', '--address', action='store_true', help=f'Retrieve address by gps coordinates from Nominatim.' )
+    parser.add_argument('-l', '--location', action='store_true', help=f'Update location taxonomy in post processing. This flag is independent of the import.' )
+    parser.add_argument('-t', '--treshold', type=int, default=treshold, help=f'Number of posts to group them as a term for the location taxonomy. Default is {treshold}.' )
     parser.add_argument('-v', '--verbose', action='store_true', help=f'Print more information' )
+    parser.add_argument('-vv', '--veryverbose', action='store_true', help=f'Print all information' )
     parser.add_argument('-d', '--destination', type=str, 
                         help=f"Content directory as root where to merge to. Default is {destination}." \
                         " The subdirectory is taken from he image's tag 'album'." \
@@ -501,8 +783,8 @@ def parseargs():
     parser.add_argument('-s', '--source', type=str, 
                         help=f"Path to the import diretcory with images to be processed." \
                         "The images must be tagged at least with 'album', otherwise 'Singels' will be used." )
+    
     args = parser.parse_args()
-
 
 if __name__ == "__main__":
     main()

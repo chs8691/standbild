@@ -10,9 +10,7 @@
 {{ $first := true}}
 
 {{ range .Pages }}
-  {{ range .Resources.ByType "image" }}
-    {{ $imageCount = add $imageCount 1 }}
-  {{ end }}
+  {{ $imageCount = add $imageCount 1 }}
 {{ end }}
 
 {{ range $p:= (.Pages.ByParam "Date") }}

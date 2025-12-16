@@ -84,3 +84,4 @@ timeout = "120s"
   model = 'model'
   lens = 'lens'
   recipe = 'recipe'
+  location = 'location'

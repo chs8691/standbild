@@ -1,5 +1,5 @@
 ---
-description: Bild ohne Album
+description: Nicht zugeordnet
 menus: "main"
 title: "Single"
 
