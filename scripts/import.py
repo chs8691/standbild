@@ -136,9 +136,15 @@ def read_image(item, address):
         values = et.get_metadata(filename)[0]
         # log(f'values={values}')
 
+        # Creating timestamp is the preferred source
         field = 'EXIF:DateTimeOriginal'
+        # Modify timestamp can be differ from creating timestamp  
+        field2 = 'EXIF:ModifyDate'
         if field in values:
             dt = datetime.strptime(values[field], '%Y:%m:%d %H:%M:%S')
+
+        elif field2 in values:
+            dt = datetime.strptime(values[field2], '%Y:%m:%d %H:%M:%S')
 
         # Workaraound for missing datetime: Parse filename. This should always start with date and time 
         else:
