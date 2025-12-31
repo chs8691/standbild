@@ -1,0 +1,42 @@
+<!-- Get latest images and count images. There may not be sub albums. -->
+ <!-- Returns no gallery if nothing found -->
+
+{{ $gallery := "" }}
+{{ $cover := "" }}
+{{ $thumbnail := "" }}
+{{ $color := "" }}
+{{ $imageCount := 0 }}
+{{ $albumCount := 1 }}
+{{ $first := true}}
+{{ $root := .}}
+
+<!-- Count the number of posts to show it on the card. -->
+{{ range .Pages }}
+  {{ $imageCount = add $imageCount 1 }}
+{{ end }}
+
+<!-- Pick up the newest post -->
+{{ range $p:= first 1 (sort .Pages ".Params.Date" "desc") }}
+<!-- { { warnf "get-card-data, find the newest post: %s"  . }} -->
+
+  <!-- There is always excactly one image per post -->
+  {{ range ($p.Resources.ByType "image") | first 1 }}
+
+    {{ $cover = . }}
+    {{ $thumbnail = $cover.Filter (slice images.AutoOrient (images.Process "fit 600x600")) }}
+    {{ $color = index $thumbnail.Colors 0 | default "transparent" }}
+    {{ $date := $p.Params.Date }}
+    {{ $gallery = dict
+      "page" $p
+      "thumbnail" $thumbnail
+      "color" $color
+      "imageCount" $imageCount
+      "date" $date
+      "root" $root
+    }}      
+    {{ return $gallery }}
+    
+  {{ end }}
+
+{{ end }}
+

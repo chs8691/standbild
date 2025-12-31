@@ -13,6 +13,8 @@
   {{ $imageCount = add $imageCount 1 }}
 {{ end }}
 
+
+
 {{ range $p:= (.Pages.ByParam "Date") }}
   {{ range ($p.Resources.ByType "image") }}
     {{ if $first }}

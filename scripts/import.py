@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from PIL import Image, ImageOps
 from geopy.geocoders import Nominatim
+import countings as C
 
 # Use args in the top level functions
 args = None
@@ -92,6 +93,7 @@ def read_image(item, address):
     """
     Adds image attributes to item. Return item added with keys from tags.py.
         DATE: As datetime object 
+        WEIGHT: Date as number or prefixed order number from filename. Optional.
     address: Boolean if address data should be read from geopy/Nominatim
     """
 
@@ -147,6 +149,7 @@ def read_image(item, address):
             dt = datetime.strptime(values[field2], '%Y:%m:%d %H:%M:%S')
 
         # Workaraound for missing datetime: Parse filename. This should always start with date and time 
+        # (But will not work for prefixed filename by sort order.)
         else:
             print('WARN Missing EXIF:DateTimeOriginal, parsing filename')
             dt = datetime.strptime(re.sub('[^0-9]', '', filename)[:14], '%Y%m%d%H%M%S')
@@ -382,7 +385,6 @@ def write_index_file(filename, image):
     lines.append(f'{T.BW}: {image[T.BW]}')
     lines.append(f'{T.DESCRIPTION}: >')
     lines.append(f'{description}')
-    # lines.append(f"type: 'photo'")
     lines.append(f'{T.LAT}: {image[T.LAT]}')
     lines.append(f'{T.LON}: {image[T.LON]}')
     lines.append(f'{T.COUNTRY}: {image[T.COUNTRY]}')
@@ -521,8 +523,6 @@ def read_source_images(source):
             log(f'  {item}')
     
     return images
-
-
 
 
 def loc_create_index_from_files(root):
@@ -729,12 +729,116 @@ def loc_update_index_files(index):
     print(f'Location updated: total={total}, changed={changed}, missing={missing}')
 
 
+def check_create_index_from_files(root):
+    """
+    Parse posts for image files. Returns for every post:
+      - PATH: path of the post
+      - NAME: filename of the image or None if missing
+      - INDEX: boolean, if index file exists. 
+      - COUNT: Number of images to detect if there is more than one image.
+    """
+
+    ret = []
+
+    log('create_index_from_files()')
+
+    # Post folders are on the third level  
+    q = '^' + root + os.path.sep + '(.+)' + os.path.sep + '(\\d+-\\d)'
+    log(f'check_create_index_from_files() with q={q}')
+    p = re.compile(q)
+        
+
+    for folder, subfolders, files in os.walk(root):
+        if not p.match(folder.lower()):
+            # print(folder)
+            continue
+
+
+        # log(f'{folder} {subfolders}')
+
+        item = { C.PATH: folder, C.NAME: None, C.INDEX: False, C.COUNT: 0 }
+
+        for f in files:
+
+            # print(f)
+
+            if f == INDEXFILENAME:
+                item[C.INDEX] = True
+
+            elif f.lower().endswith('.jpg') or f.lower().endswith('.jpeg'):
+                item[C.COUNT] += 1
+                item[C.NAME] = f
+
+        ret.append(item)
+
+    log(f'Len from ret={len(ret)}')
+    return ret
+
+
+def check_create_report(index):
+    """Analyse and create report of lines with messages. Returns dictionary with messages for:
+        - duplicates: Image in multiple posts
+        - indexmd: Index file not unique
+        - counts: Not exactly one image in a particular post
+    """
+
+    duplicates = []
+    indexmd = []
+    counts = []
+
+    for i in index:
+        for j in [j for j in index if j[C.PATH] != i[C.PATH]]:
+            if i[C.NAME] == j[C.NAME]:
+                duplicates.append(f'{i[C.PATH]}{os.path.sep}{i[C.NAME]}: Duplicated in {j[C.PATH]}')
+
+    for i in index:
+
+        if i[C.INDEX] != 1:
+            indexmd.append(f'{i[C.PATH]}: {INDEXFILENAME} not unique.')
+
+        if i[C.COUNT] != 1:
+            counts.append(f'{i[C.PATH]}: Not exactly one image file {i[C.COUNT]}.')
+  
+
+    return {'duplicates': duplicates, 'indexmd': indexmd, 'counts': counts}
+
+def check_print_report(report):
+
+    print('\nCheck-Report')
+    print('============')
+
+    if len(report['duplicates']) == 0 and len(report['indexmd']) == 0 and len(report['counts']) == 0:
+        print('All fine.')
+        return
+
+    for l in report['duplicates']:
+        print(l)
+
+    for l in report['indexmd']:
+        print(l)
+
+    for l in report['counts']:
+        print(l)
+
+def check_process(root):
+
+    vlog('check_process()')
+
+    index = check_create_index_from_files(root)
+    # log(f'index={index[:3]}')
+
+    report = check_create_report(index)
+
+    check_print_report(report)
+
+
+
 def loc_process(root, treshold):
 
     vlog('loc_process()')
 
     index = loc_create_index_from_files(root)
-    # log(f'index={index}')
+    log(f'index={index[:10]}...')
 
     # Get all nearest areas and count occurance of them
     for fields in [(T.CITY, T.PLZ, treshold), (T.REGION, T.STATE, treshold), (T.STATE, T.COUNTRY, treshold), (T.COUNTRY, T.COUNTRY, 1)]:
@@ -767,6 +871,9 @@ def main():
     if args.location:
         loc_process(args.destination, args.treshold)   
 
+    if args.check:
+        check_process(args.destination)   
+
     log('Done.')
     
 
@@ -778,6 +885,7 @@ def parseargs():
                                      " The featured tag will be recalculated to album with the newest file.")
     parser.add_argument('-a', '--address', action='store_true', help=f'Retrieve address by gps coordinates from Nominatim.' )
     parser.add_argument('-l', '--location', action='store_true', help=f'Update location taxonomy in post processing. This flag is independent of the import.' )
+    parser.add_argument('-c', '--check', action='store_true', help=f'Check content for duplicates in post processing. This flag is independent of the import.' )
     parser.add_argument('-t', '--treshold', type=int, default=treshold, help=f'Number of posts to group them as a term for the location taxonomy. Default is {treshold}.' )
     parser.add_argument('-v', '--verbose', action='store_true', help=f'Print more information' )
     parser.add_argument('-vv', '--veryverbose', action='store_true', help=f'Print all information' )

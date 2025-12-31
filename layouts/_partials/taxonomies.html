@@ -4,8 +4,12 @@
     <ul>
       <!-- { { warnf "site.Taxonomies: %s" . }} -->
       {{ range . }}
-      <!-- { { warnf "TAXONOMIES: %s" . }} -->
-         <li><a href="{{ .Page.Permalink }}">{{ .Page.Title }}</a></li>
+
+      <!-- Map can be empty. Prevent from running into ERROR  -->
+        {{ if . }}
+        <!-- { { warnf "TAXONOMIES: %s" . }} -->
+          <li><a href="{{ .Page.Permalink }}">{{ .Page.Title }}</a></li>
+        {{ end }}
       {{ end }}
     </ul>
   </nav>
