@@ -1,6 +1,6 @@
 # Hugo album collection based on hugo-theme-gallery by Nico Kaiser
 
-Jedes Bild wird als Post angelegt und in genau ein Album eingeordnet. Die Haupseite listet die Albums nach dem letzten Update. Ein Album wird als 'Album-Card' mit seinem neuesten Foto dargestellt. Das Album mit dem neuesten Bild wird als 'featured' groß dargestellt. 
+Jedes Bild wird als Post angelegt und in genau ein Album eingeordnet. Die Haupseite listet die Albums nach dem letzten Post sortiert auf. Ein Album wird als 'Album-Card' mit seinem neuesten Foto dargestellt. Das Album mit dem neuesten Bild wird als 'featured' groß dargestellt. 
 
 Mit der Taxonomie von Hugo können die Bilder darüberhinaus nach Attributen (Terms) dargestellt werden. Die Liste der Taxonomien wird as Button-Reihe auf der Hautseite gelistet.
 
@@ -15,7 +15,7 @@ Installationsverzeichnis: `~/dev/standbild`
 Repository auschecken.
 
 ```zsh
-cd ~/dev/
+cd ~/kollegen/
 git clone https://github.com/chs8691/standbild.git
 cd standbild
 git submodule add --depth=1 https://github.com/nicokaiser/hugo-theme-gallery.git themes/gallery
@@ -53,28 +53,66 @@ content/
 │   ...
 ```
 
-## Datenbereitstellung mittels Skript.
-Alles für den Aufbau und zur Darstellung soll in den Index-Dateien liegen. Das Template ist dahingehend konzipiert und so sind wenig Anpassungen nöitg.
-Das bedeutet aber, dass mit jedem neuen Post die Index-Dateien das betroffene Albums sowie des Featured-Albums anzupassen sind. Dazu dient das Python-Script in `/scripts`. Das Import-Verzeichnis dieht als Eingang. Original-Dateien werden hier hineingeworfen. 
+## Datenbereitstellung der Posts mittels Skript.
+
+Neue Bilder werden per Skript eingearbeitet, indem dafür ein **Post** angelegt wird. Dafür müssen die Bilder EXIF-Tags enthalten. Diese Tag-Informationen werden vom Skript in die index.md-Datei des Posts eingearbeitet (`index.md`). Die Hugo-Templates sorgen dafür, das die Website nur anhand dieser Informationen aufgebaut wird. Die Index-Datei von Album und Taxonomie dageben beinhalten lediglich statische Beschreibungen (`_index.md`). Das Album mit dem neusten Bild wird als automatisch als _featured_ dargestellt. Sortierung und Bildauswahl erfolgt ebenfalls anhand der Posts.
+
+Übersicht über die relevante Dateistruktur:
+
+```plain
+├── content/           <--- Zielverzeichnis 
+├── import/            <--- Quellverzeichnis, Original hier hineinkopieren
+├── scripts/           <--- Python-Bereich
+│   ├── import.py      <--- Skript 
+```
+
+### Felder in Index.md
+
+Exif-Tags werden wie folgt gemappt:
+
+| Exif-Tag|index.md-Tag|Info|Beispielwert in index.md
+|-|-|-|-
+|XMP:Caption|title|  | Die Bekanntmachung 
+|EXIF:DateTimeOriginal|date|  | 2020-11-01T13| | |59| | |39
+|EXIF:DateTimeOriginal|year|  | 2020
+|XMP:TagsList|recipe| Taxonomy | Kodak Portra 160 v2
+|XMP:TagsList|recipe_source| Taxonomy | Fuji X Weekly
+|EXIF:Make|make|  | FUJIFILM
+|EXIF:LensModel|lens| Taxonomy | XF18-55mmF2.8-4 R LM OIS
+|EXIF:Model|model| Taxonomy | X-E2S
+|XMP:TagsList|sooc|  | True
+|XMP:TagsList|filmsimulation| Taxonomy | Classic Chrome
+|XMP:TagsList|bw|  | False
+|EXIF:ImageDescription|description|  | > <br>   &ensp;Orte 23
+|EXIF:GPSLatitude<br>EXIF:GPSLatitudeRef|lat| Taxonomy | 50.3458452000389
+|EXIF:GPSLongitudeRef<br>EXIF:GPSLongitude|lon| Taxonomy | 9.55684890000278
+
+Struktur der XMP:TagsList beinhalten **Album**, **Filmsimulation** und **Recipe**:
+* `Fuji-X/[BW|Color]/<ALBUM_NAME>` bestimmt das Album
+  * z.B. `Fuji-X/color/Classic Chrome`
+* `Serie/<ALBUM_NAME>` bestimmt das Album
+  * z.B. `Serie/pendel`
+* `Recipe/<REZEPT_QUELLE><REZEPT_NAME>` bestimmt das Rezept
+  * z.B. `Recipe/Fuji X Weekly/Agfa APX 400`
+
+Aus den **GEO-Koordinaten** wird die Andresse ermittelt: _country_, _state_, _region_, _city_ und _plz_.
+
+Feld **location** wird aus diesen Werten ermittelt (Skript-Parameter _treshold_), je nach der Anzahl der Bilder in einer Stadt, Region oder Bundesland. 
+
 
 Die Aufgaben des Skriptings sind:
 
 - Auslesen der Meta-Daten aus einm Bild
   - /import: JPG --> PY-DICT
   - PY: Ermitteln des Albums
-- Verkleinern eines Bildes
-  -  /import: JPG --> JPG
+- Verkleinern des Bildes
+  -  /import: JPG --> /import/tmp/JPG
 - Erstellen der index-Datei für den Post
-  -  /import: index.md
+  -  /import/tmp: index.md
 - Anlegen des Posts:
-  - /content: Verzeichnis erstellen und Dateien mv
-- Aktualisieren des Featured-Flag
-  - isolierte Funktion, unabhängig vom Import
-  - /content
-    - Lies alle Albumdaten ein
-    - Bestimme Featured Album
-    - Update der alten Albums
-    - Update des neuen Albums
+  - /import/tmp/ --> /content/\<ALBUM\>/
+- Bestimmen von Location durch Analyse/Update aller Posts
+  - /content/\*/index.md --> /content/\*/index.md
 
 
 Das `import`-Verzeichnis:
@@ -82,7 +120,18 @@ Das `import`-Verzeichnis:
 - ACHTUNG: Alle Dateien im `Import`-Verzeichnis werden nach erfolgreicher Verarbeitung gelöscht.
 - Verkleinerte Bilder und erzeugte index.md werden aus dem content-Verzeichnis gelöscht (Unterverzeichnis `tmp`).
 
-## Lokaler Test
+### Ausführen
+
+Einmalig ins script-Verzeichnis wechseln und eine venv mit `requirement.txt` aufsetzen. Dann die getaggten Bilder in das Import-Verzeichnis kopieren. Post erstellen, Addressen ermitteln und Location aller Bilder neu bestimmen.
+
+```plain
+ venv/bin/python import.py -s ../import -d ../content --location --address --check
+```
+
+Mit `--check` wird geprüft, ob ein Bild mehrfach vorkommt. 
+
+
+## Lokaler Test mit Hugo
 
 Hugo wacht über Änderungen in dem Verzeichnis und stellt einen lokalen Webserver zur Verfügung. Starten:
 
@@ -99,6 +148,29 @@ Wird die Seite erfolgreich generiert, kann diese dann im Browser gestartet werde
 ```zsh
 Web Server is available at http://localhost:1313/ (bind address 127.0.0.1) 
 Press Ctrl+C to stop
+```
+
+## Verteilung
+
+
+```plantuml
+node github {
+  rectangle standbild
+}
+node "uberspace:Kollegen" as uberspace {
+  rectangle "~/html" as html
+}
+node  macbook {
+  rectangle "~/kollegen"  { 
+  rectangle "/standbild" as working {
+    rectangle "/public" as public
+  }
+  }
+}
+
+standbild -- working: git
+html <-- public: deploy.sh
+
 ```
 
 ## Setup Uberspace

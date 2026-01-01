@@ -186,12 +186,12 @@ def read_image(item, address):
         field = 'EXIF:GPSLongitude'
         if field in values:
             if ref == 'W':
-             ret[T.LON] = - values[field]
+                ret[T.LON] = - values[field]
             else:
-             ret[T.LON] = values[field]
+                ret[T.LON] = values[field]
 
         # N or S 
-        field = 'EXIF:GPSLongitudeRef'
+        field = 'EXIF:GPSLatitudeRef'
         if field in values:
             ref = values[field]
 
@@ -199,9 +199,9 @@ def read_image(item, address):
         if field in values:
             ret[T.LAT] = values[field]
             if ref == 'S':
-             ret[T.LAT] = - values[field]
+                ret[T.LAT] = - values[field]
             else:
-             ret[T.LAT] = values[field]
+                ret[T.LAT] = values[field]
 
         if address:
             addr = get_address(ret[T.LAT], ret[T.LON])
