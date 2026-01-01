@@ -167,6 +167,8 @@ architecture-beta
 
 ```
 
+Auf Uberspace wird die fertige Webite kopiert, keine Hugo-Installation nötig. Auf Github liegt nur das Hugo-Projekt, aber nicht der Content. Dieser liegt lediglich auf dem MacBook, durch Timemachine gesichert.
+
 
 ## Setup Uberspace
 
