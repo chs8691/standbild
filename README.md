@@ -6,6 +6,18 @@ Mit der Taxonomie von Hugo können die Bilder darüberhinaus nach Attributen (Te
 
 Die Posts liegen als Bundle-Verzeichnis direkt in den Album-Verzeichnissen, alles liegt in `/content`. Für jedes Bild ist ein Post in einem Verzeichnis mit der Bilddatei und der `index.md`-Datei anzulegen.
 
+<div hidden>
+```
+@startuml firstDiagram
+
+Alice -> Bob: Hello
+Bob -> Alice: Hi!
+		
+@enduml
+```
+</div>
+
+![](firstDiagram.svg)
 
 ## Installation und Setup gitHub
 Beschreibt, wie das hugo-Projekt mit dem Theme als git submodel incl. den Demo-Bildern erstellt wird.
