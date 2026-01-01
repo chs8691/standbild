@@ -122,7 +122,9 @@ Das `import`-Verzeichnis:
 
 ### Ausführen
 
-Einmalig ins script-Verzeichnis wechseln und eine venv mit `requirement.txt` aufsetzen. Dann die getaggten Bilder in das Import-Verzeichnis kopieren. Post erstellen, Addressen ermitteln und Location aller Bilder neu bestimmen.
+Einmalig ins script-Verzeichnis wechseln und eine venv mit `requirement.txt` aufsetzen. Dann die getaggten Bilder in das Import-Verzeichnis kopieren. 
+
+Post erstellen, Addressen ermitteln und Location aller Bilder neu bestimmen:
 
 ```plain
  venv/bin/python import.py -s ../import -d ../content --location --address --check
