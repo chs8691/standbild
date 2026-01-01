@@ -6,13 +6,6 @@ Mit der Taxonomie von Hugo können die Bilder darüberhinaus nach Attributen (Te
 
 Die Posts liegen als Bundle-Verzeichnis direkt in den Album-Verzeichnissen, alles liegt in `/content`. Für jedes Bild ist ein Post in einem Verzeichnis mit der Bilddatei und der `index.md`-Datei anzulegen.
 
-```mermaid
-graph TD;
-    A-->B;
-    A-->C;
-    B-->D;
-    C-->D;
-```
 
 ## Installation und Setup gitHub
 Beschreibt, wie das hugo-Projekt mit dem Theme als git submodel incl. den Demo-Bildern erstellt wird.
@@ -161,26 +154,19 @@ Press Ctrl+C to stop
 
 ## Verteilung
 
+```mermaid
+architecture-beta
+    group api(internet)[standbild]
 
-```plantuml
-node github {
-  rectangle standbild
-}
-node "uberspace:Kollegen" as uberspace {
-  rectangle "~/html" as html
-}
-node  macbook {
-  rectangle "~/kollegen"  { 
-  rectangle "/standbild" as working {
-    rectangle "/public" as public
-  }
-  }
-}
+    service db(database)[GitHub] in api
+    service disk1(disk)[MacBook] in api
+    service server(server)[Uberspace] in api
 
-standbild -- working: git
-html <-- public: deploy.sh
+    db:L -- R:disk1
+    disk1:T -- B:server
 
 ```
+
 
 ## Setup Uberspace
 
